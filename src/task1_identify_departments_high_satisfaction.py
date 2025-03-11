@@ -30,22 +30,27 @@ def load_data(spark, file_path):
 
 def identify_departments_high_satisfaction(df):
     """
-    Identify departments with more than 50% of employees having a Satisfaction Rating > 4 and Engagement Level 'High'.
-
-    Parameters:
-        df (DataFrame): Spark DataFrame containing employee data.
-
-    Returns:
-        DataFrame: DataFrame containing departments meeting the criteria with their respective percentages.
+    Identify departments with more than 3% of employees having a Satisfaction Rating > 4 and Engagement Level 'High'.
     """
-    # TODO: Implement Task 1
-    # Steps:
     # 1. Filter employees with SatisfactionRating > 4 and EngagementLevel == 'High'.
-    # 2. Calculate the percentage of such employees within each department.
-    # 3. Identify departments where this percentage exceeds 50%.
-    # 4. Return the result DataFrame.
+    high_satisfaction = df.filter((col("SatisfactionRating") > 4) & (col("EngagementLevel") == "High"))
+    
+    # 2. Count total employees and those with high satisfaction in each department
+    department_counts = df.groupBy("Department").agg(count("*").alias("total_employees"))
+    high_satisfaction_counts = high_satisfaction.groupBy("Department").agg(count("*").alias("high_satisfaction_employees"))
+    
+    # 3. Join the two counts to calculate the percentage
+    result = department_counts.join(high_satisfaction_counts, on="Department", how="left")
+    
+    # 4. Calculate the percentage and filter departments with more than 3% high satisfaction
+    result = result.withColumn("satisfaction_percentage", 
+                               (col("high_satisfaction_employees") / col("total_employees")) * 100)
+    
+    result = result.filter(col("satisfaction_percentage") > 3).select("Department", 
+                                                                     spark_round(col("satisfaction_percentage"), 2).alias("Percentage"))
+    return result
 
-    pass  # Remove this line after implementing the function
+
 
 def write_output(result_df, output_path):
     """
@@ -68,8 +73,8 @@ def main():
     spark = initialize_spark()
     
     # Define file paths
-    input_file = "/workspaces/Employee_Engagement_Analysis_Spark/input/employee_data.csv"
-    output_file = "/workspaces/Employee_Engagement_Analysis_Spark/outputs/task1/departments_high_satisfaction.csv"
+    input_file = "/workspaces/spark-structured-api-employee-engagement-analysis-ramisha99/input/employee_data.csv"
+    output_file = "/workspaces/spark-structured-api-employee-engagement-analysis-ramisha99/outputs/task1/departments_high_satisfaction.csv"
     
     # Load data
     df = load_data(spark, input_file)

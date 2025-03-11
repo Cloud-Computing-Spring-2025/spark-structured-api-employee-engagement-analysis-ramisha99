@@ -31,39 +31,44 @@ def load_data(spark, file_path):
 def map_engagement_level(df):
     """
     Map EngagementLevel from categorical to numerical values.
-
-    Parameters:
-        df (DataFrame): Spark DataFrame containing employee data.
-
-    Returns:
-        DataFrame: DataFrame with an additional column for numerical EngagementScore.
     """
-    # TODO: Implement mapping of EngagementLevel to numerical values
-    # Example:
-    # 'Low' -> 1
-    # 'Medium' -> 2
-    # 'High' -> 3
+    # Define mapping for EngagementLevel to numerical values
+    engagement_map = {
+        "Low": 1,
+        "Medium": 2,
+        "High": 3
+    }
 
-    pass  # Remove this line after implementing the function
+    # Apply the mapping to create the EngagementScore column
+    df = df.withColumn(
+        "EngagementScore",
+        when(col("EngagementLevel") == "Low", 1)
+        .when(col("EngagementLevel") == "Medium", 2)
+        .when(col("EngagementLevel") == "High", 3)
+        .otherwise(None)  # Default to None for unknown values
+    )
+
+    return df
+
 
 def compare_engagement_levels(df):
     """
     Compare engagement levels across different job titles and identify the top-performing job title.
-
-    Parameters:
-        df (DataFrame): Spark DataFrame containing employee data with numerical EngagementScore.
-
-    Returns:
-        DataFrame: DataFrame containing JobTitle and their average EngagementLevel.
     """
-    # TODO: Implement Task 3
-    # Steps:
     # 1. Map EngagementLevel to numerical values.
+    df_mapped = map_engagement_level(df)
+    
     # 2. Group by JobTitle and calculate average EngagementScore.
+    result = df_mapped.groupBy("JobTitle").agg(spark_round(avg("EngagementScore"), 2).alias("AvgEngagementLevel"))
+    
     # 3. Round the average to two decimal places.
+    # (Done in the previous line with spark_round)
+    
     # 4. Return the result DataFrame.
+    result = result.orderBy(col("AvgEngagementLevel").desc())
+    
+    return result
 
-    pass  # Remove this line after implementing the function
 
 def write_output(result_df, output_path):
     """
@@ -86,8 +91,8 @@ def main():
     spark = initialize_spark()
     
     # Define file paths
-    input_file = "/workspaces/Employee_Engagement_Analysis_Spark/input/employee_data.csv"
-    output_file = "/workspaces/Employee_Engagement_Analysis_Spark/outputs/task3/engagement_levels_job_titles.csv"
+    input_file = "/workspaces/spark-structured-api-employee-engagement-analysis-ramisha99/input/employee_data.csv"
+    output_file = "/workspaces/spark-structured-api-employee-engagement-analysis-ramisha99/outputs/task3/engagement_levels_job_titles.csv"
     
     # Load data
     df = load_data(spark, input_file)

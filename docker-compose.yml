@@ -17,7 +17,7 @@ services:
     volumes:
       - spark-master-volume:/bitnami/spark
       - ./input:/input
-      - ./src:/notebooks
+      - ./src:/notebooksls
 
   spark-worker-1:
     image: bitnami/spark:latest
